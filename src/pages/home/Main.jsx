@@ -1,5 +1,6 @@
 import { dummyLoans } from "../../mock/mockdata";
 import { SearchBar } from "./SearchBar";
+import { Link } from "react-router-dom";
 
 export function Main() {
   return (
@@ -59,9 +60,9 @@ export function Main() {
             </div>
 
             <div className="bg-gray-50 px-6 py-3 border-t border-gray-100">
-              <button className="w-full inline-flex justify-center items-center px-4 py-2 border border-transparent rounded-lg shadow-sm text-sm font-medium text-white bg-red-600 hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 transition-colors duration-200">
+              <Link to='/viewDetails' className="w-full inline-flex justify-center items-center px-4 py-2 border border-transparent rounded-lg shadow-sm text-sm font-medium text-white bg-red-600 hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 transition-colors duration-200">
                 View Details
-              </button>
+              </Link>
             </div>
           </div>
         ))}
