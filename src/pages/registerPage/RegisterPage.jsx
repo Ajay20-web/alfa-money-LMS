@@ -1,35 +1,20 @@
-import { useState } from "react";
 import { MainHeader } from "../../components/MainHeader";
 
 export function RegisterLoan() {
-  const [formData, setFormData] = useState({
-    borrowerName: "",
-    loanDate: "",
-    dueDate: "",
-    place: "",
-  });
-
-  const handleChange = (e) => {
-    const { name, value } = e.target;
-    setFormData((prev) => ({
-      ...prev,
-      [name]: value,
-    }));
-  };
-
-  const handleSubmit = (e) => {
-    e.preventDefault();
-    console.log("Registering loan:", formData);
-    // Add submission logic here
-  };
-
   return (
     <>
       <MainHeader />
-      <div className="max-w-2xl mx-auto p-6">
-        <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
+
+      <main className="max-w-2xl mx-auto p-6">
+        <section
+          aria-labelledby="register-loan-title"
+          className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden"
+        >
           <header className="p-6 border-b border-gray-200 bg-gray-50">
-            <h2 className="text-xl font-bold text-gray-900">
+            <h2
+              id="register-loan-title"
+              className="text-xl font-bold text-gray-900"
+            >
               Register New Loan
             </h2>
             <p className="text-sm text-gray-500 mt-1">
@@ -37,59 +22,76 @@ export function RegisterLoan() {
             </p>
           </header>
 
-          <form onSubmit={handleSubmit} className="p-6 space-y-6">
+          <form className="p-6 space-y-6">
+            {/* Borrower Name */}
             <div>
               <label
-                htmlFor="Name"
+                htmlFor="borrowerName"
                 className="block text-sm font-medium text-gray-700 mb-1"
               >
-                Loner Name
+                Borrower Name
               </label>
               <input
                 type="text"
-                id="Name"
-                name="Name"
-                value={formData.borrowerName}
-                onChange={handleChange}
+                id="borrowerName"
+                name="borrowerName"
                 className="block w-full rounded-lg border border-gray-300 px-3 py-2 shadow-sm focus:border-red-500 focus:outline-none focus:ring-1 focus:ring-red-500 sm:text-sm"
                 placeholder="Enter full name"
                 required
               />
             </div>
 
-            <div>
-              <label
-                htmlFor="Name"
-                className="block text-sm font-medium text-gray-700 mb-1"
-              >
-                Amount
-              </label>
-              <input
-                type="text"
-                id="amount"
-                name="amount"
-                value={formData.amount}
-                onChange={handleChange}
-                className="block w-full rounded-lg border border-gray-300 px-3 py-2 shadow-sm focus:border-red-500 focus:outline-none focus:ring-1 focus:ring-red-500 sm:text-sm"
-                placeholder="Enter full name"
-                required
-              />
+            {/* Financial Details Grid (Amount & Interest) */}
+            <div className="grid grid-cols-1 gap-6 sm:grid-cols-2">
+              <div>
+                <label
+                  htmlFor="amount"
+                  className="block text-sm font-medium text-gray-700 mb-1"
+                >
+                  Loan Amount (₹)
+                </label>
+                <input
+                  type="number"
+                  id="amount"
+                  name="amount"
+                  className="block w-full rounded-lg border border-gray-300 px-3 py-2 shadow-sm focus:border-red-500 focus:outline-none focus:ring-1 focus:ring-red-500 sm:text-sm"
+                  placeholder="e.g. 50000"
+                  required
+                />
+              </div>
+
+              <div>
+                <label
+                  htmlFor="interest"
+                  className="block text-sm font-medium text-gray-700 mb-1"
+                >
+                  Interest Rate (%)
+                </label>
+                <input
+                  type="number"
+                  id="interest"
+                  name="interest"
+                  step="0.01"
+                  className="block w-full rounded-lg border border-gray-300 px-3 py-2 shadow-sm focus:border-red-500 focus:outline-none focus:ring-1 focus:ring-red-500 sm:text-sm"
+                  placeholder="e.g. 2.0"
+                  required
+                />
+              </div>
             </div>
 
+            {/* Dates Grid */}
             <div className="grid grid-cols-1 gap-6 sm:grid-cols-2">
               <div>
                 <label
                   htmlFor="loanDate"
                   className="block text-sm font-medium text-gray-700 mb-1"
                 >
-                  Date of Loan Getting
+                  Loan Date
                 </label>
                 <input
                   type="date"
                   id="loanDate"
                   name="loanDate"
-                  value={formData.loanDate}
-                  onChange={handleChange}
                   className="block w-full rounded-lg border border-gray-300 px-3 py-2 shadow-sm focus:border-red-500 focus:outline-none focus:ring-1 focus:ring-red-500 sm:text-sm"
                   required
                 />
@@ -106,14 +108,13 @@ export function RegisterLoan() {
                   type="date"
                   id="dueDate"
                   name="dueDate"
-                  value={formData.dueDate}
-                  onChange={handleChange}
                   className="block w-full rounded-lg border border-gray-300 px-3 py-2 shadow-sm focus:border-red-500 focus:outline-none focus:ring-1 focus:ring-red-500 sm:text-sm"
                   required
                 />
               </div>
             </div>
 
+            {/* Place */}
             <div>
               <label
                 htmlFor="place"
@@ -125,14 +126,13 @@ export function RegisterLoan() {
                 type="text"
                 id="place"
                 name="place"
-                value={formData.place}
-                onChange={handleChange}
                 className="block w-full rounded-lg border border-gray-300 px-3 py-2 shadow-sm focus:border-red-500 focus:outline-none focus:ring-1 focus:ring-red-500 sm:text-sm"
                 placeholder="Enter location"
                 required
               />
             </div>
 
+            {/* Submit Button */}
             <div className="pt-4">
               <button
                 type="submit"
@@ -142,8 +142,8 @@ export function RegisterLoan() {
               </button>
             </div>
           </form>
-        </div>
-      </div>
+        </section>
+      </main>
     </>
   );
 }
