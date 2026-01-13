@@ -1,6 +1,73 @@
 import { MainHeader } from "../../components/MainHeader";
+import { useState } from "react";
+import { useMutation } from "@tanstack/react-query";
+import { registerLoan } from "../../api/loans.js";
+import { useNavigate } from "react-router-dom"; // Import useNavigate for navigation after submission to home page
 
 export function RegisterLoan() {
+  const navigate = useNavigate();
+
+  const [formData, setFormData] = useState({
+    borrowerName: "",
+    amount: "",
+    interest: "",
+    loanDate: "",
+    dueDate: "",
+    place: "",
+    balance: "",
+    status: "Active",
+  });
+
+  // 2. Define the Mutation Logic
+  const mutation = useMutation({
+    mutationFn: registerLoan,
+    onSuccess: (data) => {
+      // Success!
+      alert("Loan Registered Successfully!");
+      // Clear the form after successful submission
+      setFormData({
+        borrowerName: "",
+        amount: "",
+        interest: "",
+        loanDate: "",
+        dueDate: "",
+        place: "",
+        balance: "",
+        status: "Active",
+      });
+      //Navigate back to home or home page
+      navigate("/");
+    },
+    onError: (error) => {
+      // Error!
+      console.error("Error adding document: ", error);
+      alert("Failed to register loan. Please try again.");
+    },
+  });
+
+  const handleChange = (e) => {
+    const { name, value } = e.target;
+    setFormData((prev) => ({
+      ...prev,
+      [name]: value,
+    }));
+  };
+
+  const handleSubmit = (e) => {
+    e.preventDefault();
+
+    // 3. Prepare data (Convert strings to numbers for DB)
+    const cleanData = {
+      ...formData,
+      amount: Number(formData.amount),
+      interest: Number(formData.interest),
+      balance: Number(formData.balance),
+    };
+
+    // 4. Trigger the mutation
+    mutation.mutate(cleanData);
+  };
+
   return (
     <>
       <MainHeader />
@@ -22,8 +89,8 @@ export function RegisterLoan() {
             </p>
           </header>
 
-          <form className="p-6 space-y-6">
-            {/* Borrower Name */}
+          <form onSubmit={handleSubmit} className="p-6 space-y-6">
+            {/* --- Borrower Name --- */}
             <div>
               <label
                 htmlFor="borrowerName"
@@ -35,13 +102,17 @@ export function RegisterLoan() {
                 type="text"
                 id="borrowerName"
                 name="borrowerName"
-                className="block w-full rounded-lg border border-gray-300 px-3 py-2 shadow-sm focus:border-red-500 focus:outline-none focus:ring-1 focus:ring-red-500 sm:text-sm"
+                value={formData.borrowerName}
+                onChange={handleChange}
+                // Disable input while loading
+                disabled={mutation.isPending}
+                className="block w-full rounded-lg border border-gray-300 px-3 py-2 shadow-sm focus:border-red-500 focus:outline-none focus:ring-1 focus:ring-red-500 sm:text-sm disabled:bg-gray-100 disabled:text-gray-500"
                 placeholder="Enter full name"
                 required
               />
             </div>
 
-            {/* Financial Details Grid (Amount & Interest) */}
+            {/* --- Money Grid (Amount & Interest) --- */}
             <div className="grid grid-cols-1 gap-6 sm:grid-cols-2">
               <div>
                 <label
@@ -54,7 +125,10 @@ export function RegisterLoan() {
                   type="number"
                   id="amount"
                   name="amount"
-                  className="block w-full rounded-lg border border-gray-300 px-3 py-2 shadow-sm focus:border-red-500 focus:outline-none focus:ring-1 focus:ring-red-500 sm:text-sm"
+                  value={formData.amount}
+                  onChange={handleChange}
+                  disabled={mutation.isPending}
+                  className="block w-full rounded-lg border border-gray-300 px-3 py-2 shadow-sm focus:border-red-500 focus:outline-none focus:ring-1 focus:ring-red-500 sm:text-sm disabled:bg-gray-100"
                   placeholder="e.g. 50000"
                   required
                 />
@@ -72,14 +146,61 @@ export function RegisterLoan() {
                   id="interest"
                   name="interest"
                   step="0.01"
-                  className="block w-full rounded-lg border border-gray-300 px-3 py-2 shadow-sm focus:border-red-500 focus:outline-none focus:ring-1 focus:ring-red-500 sm:text-sm"
+                  value={formData.interest}
+                  onChange={handleChange}
+                  disabled={mutation.isPending}
+                  className="block w-full rounded-lg border border-gray-300 px-3 py-2 shadow-sm focus:border-red-500 focus:outline-none focus:ring-1 focus:ring-red-500 sm:text-sm disabled:bg-gray-100"
                   placeholder="e.g. 2.0"
                   required
                 />
               </div>
             </div>
 
-            {/* Dates Grid */}
+            {/* --- Status & Balance Grid --- */}
+            <div className="grid grid-cols-1 gap-6 sm:grid-cols-2">
+              <div>
+                <label
+                  htmlFor="balance"
+                  className="block text-sm font-medium text-gray-700 mb-1"
+                >
+                  Opening Balance (₹)
+                </label>
+                <input
+                  type="number"
+                  id="balance"
+                  name="balance"
+                  value={formData.balance}
+                  onChange={handleChange}
+                  disabled={mutation.isPending}
+                  className="block w-full rounded-lg border border-gray-300 px-3 py-2 shadow-sm focus:border-red-500 focus:outline-none focus:ring-1 focus:ring-red-500 sm:text-sm disabled:bg-gray-100"
+                  placeholder="Usually same as Amount"
+                  required
+                />
+              </div>
+
+              <div>
+                <label
+                  htmlFor="status"
+                  className="block text-sm font-medium text-gray-700 mb-1"
+                >
+                  Loan Status
+                </label>
+                <select
+                  id="status"
+                  name="status"
+                  value={formData.status}
+                  onChange={handleChange}
+                  disabled={mutation.isPending}
+                  className="block w-full rounded-lg border border-gray-300 px-3 py-2 shadow-sm focus:border-red-500 focus:outline-none focus:ring-1 focus:ring-red-500 sm:text-sm bg-white disabled:bg-gray-100"
+                >
+                  <option value="Active">Active</option>
+                  <option value="Pending">Pending</option>
+                  <option value="Closed">Closed</option>
+                </select>
+              </div>
+            </div>
+
+            {/* --- Dates Grid --- */}
             <div className="grid grid-cols-1 gap-6 sm:grid-cols-2">
               <div>
                 <label
@@ -92,7 +213,10 @@ export function RegisterLoan() {
                   type="date"
                   id="loanDate"
                   name="loanDate"
-                  className="block w-full rounded-lg border border-gray-300 px-3 py-2 shadow-sm focus:border-red-500 focus:outline-none focus:ring-1 focus:ring-red-500 sm:text-sm"
+                  value={formData.loanDate}
+                  onChange={handleChange}
+                  disabled={mutation.isPending}
+                  className="block w-full rounded-lg border border-gray-300 px-3 py-2 shadow-sm focus:border-red-500 focus:outline-none focus:ring-1 focus:ring-red-500 sm:text-sm disabled:bg-gray-100"
                   required
                 />
               </div>
@@ -108,13 +232,16 @@ export function RegisterLoan() {
                   type="date"
                   id="dueDate"
                   name="dueDate"
-                  className="block w-full rounded-lg border border-gray-300 px-3 py-2 shadow-sm focus:border-red-500 focus:outline-none focus:ring-1 focus:ring-red-500 sm:text-sm"
+                  value={formData.dueDate}
+                  onChange={handleChange}
+                  disabled={mutation.isPending}
+                  className="block w-full rounded-lg border border-gray-300 px-3 py-2 shadow-sm focus:border-red-500 focus:outline-none focus:ring-1 focus:ring-red-500 sm:text-sm disabled:bg-gray-100"
                   required
                 />
               </div>
             </div>
 
-            {/* Place */}
+            {/* --- Place --- */}
             <div>
               <label
                 htmlFor="place"
@@ -126,20 +253,40 @@ export function RegisterLoan() {
                 type="text"
                 id="place"
                 name="place"
-                className="block w-full rounded-lg border border-gray-300 px-3 py-2 shadow-sm focus:border-red-500 focus:outline-none focus:ring-1 focus:ring-red-500 sm:text-sm"
+                value={formData.place}
+                onChange={handleChange}
+                disabled={mutation.isPending}
+                className="block w-full rounded-lg border border-gray-300 px-3 py-2 shadow-sm focus:border-red-500 focus:outline-none focus:ring-1 focus:ring-red-500 sm:text-sm disabled:bg-gray-100"
                 placeholder="Enter location"
                 required
               />
             </div>
 
-            {/* Submit Button */}
+            {/* --- Submit Button --- */}
             <div className="pt-4">
               <button
                 type="submit"
-                className="w-full flex justify-center items-center px-4 py-2 border border-transparent rounded-lg shadow-sm text-sm font-medium text-white bg-red-600 hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 transition-colors duration-200"
+                // 5. Disable button when loading to prevent double-click
+                disabled={mutation.isPending}
+                className={`w-full flex justify-center items-center px-4 py-2 border border-transparent rounded-lg shadow-sm text-sm font-medium text-white transition-colors duration-200 
+                  ${
+                    mutation.isPending
+                      ? "bg-red-400 cursor-not-allowed"
+                      : "bg-red-600 hover:bg-red-700 focus:ring-2 focus:ring-offset-2 focus:ring-red-500"
+                  }`}
               >
-                Submit Registration
+                {/* 6. Change text based on state */}
+                {mutation.isPending
+                  ? "Registering Loan..."
+                  : "Submit Registration"}
               </button>
+
+              {/* Optional: Show Error Message nicely */}
+              {mutation.isError && (
+                <p className="mt-2 text-sm text-red-600 text-center">
+                  Error: {mutation.error.message}
+                </p>
+              )}
             </div>
           </form>
         </section>
