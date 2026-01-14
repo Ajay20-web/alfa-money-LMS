@@ -139,7 +139,7 @@ export function RegisterLoan() {
                   htmlFor="interest"
                   className="block text-sm font-medium text-gray-700 mb-1"
                 >
-                  Interest Rate (%)
+                  Interest Amount
                 </label>
                 <input
                   type="number"
@@ -150,7 +150,7 @@ export function RegisterLoan() {
                   onChange={handleChange}
                   disabled={mutation.isPending}
                   className="block w-full rounded-lg border border-gray-300 px-3 py-2 shadow-sm focus:border-red-500 focus:outline-none focus:ring-1 focus:ring-red-500 sm:text-sm disabled:bg-gray-100"
-                  placeholder="e.g. 2.0"
+                  placeholder="e.g. 5000.00"
                   required
                 />
               </div>

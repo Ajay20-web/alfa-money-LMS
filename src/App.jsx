@@ -9,7 +9,7 @@ function App() {
       <Routes>
         <Route path="/" element={<HomePage />} />
         <Route path="/register" element={<RegisterLoan />} />
-        <Route path="/viewDetails" element={<LoanDetails />} />
+        <Route path="/viewDetails/:id" element={<LoanDetails />} />
         <Route path="/monthlyAmount" element={<MonthlyAmount />} />
       </Routes>
     </div>
