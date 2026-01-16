@@ -44,7 +44,7 @@ function LoanCard({ loan }) {
               </div>
               <div className="text-right">
                 <p className="text-xs text-gray-500">Interest</p>
-                <p className="font-medium text-gray-900">{loan.interest}%</p>
+                <p className="font-medium text-gray-900">₹{loan.interest}</p>
               </div>
             </div>
           </div>
