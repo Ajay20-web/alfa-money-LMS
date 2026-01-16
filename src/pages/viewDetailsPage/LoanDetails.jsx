@@ -185,12 +185,12 @@ const PaymentForm = ({ onAdd, isOnline, isPending }) => {
   );
 };
 
-const PaymentHistory = ({ payments = [] }) => (
+const PaymentHistory = ({ payments = [], loanId }) => (
   <section className="bg-white rounded-xl shadow-sm border border-gray-200">
     <header className="p-6 border-b border-gray-200 flex justify-between items-center">
       <h3 className="text-lg font-bold text-gray-900">Payment History</h3>
       <Link
-        to="/monthlyAmount"
+        to={`/monthlyAmount/${loanId}`}
         className="px-4 py-2 rounded-lg text-sm font-medium text-white bg-green-600 hover:bg-green-700"
       >
         Monthly Amount
@@ -272,7 +272,7 @@ export function LoanDetails() {
           isOnline={isOnline}
           isPending={mutation.isPending}
         />
-        <PaymentHistory payments={loan.payments} />
+        <PaymentHistory payments={loan.payments} loanId={id} />
       </main>
     </>
   );

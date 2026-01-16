@@ -85,10 +85,6 @@ export function Main() {
 
   const hasLoans = loans.length > 0;
 
-  // navigator.onLine:
-  // - Provided by the browser (Web API)
-  // - true  → device is connected to a network (Wi-Fi / mobile data)
-  // - false → device is offline
   const isOffline = !navigator.onLine;
 
   return (

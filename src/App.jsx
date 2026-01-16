@@ -10,7 +10,7 @@ function App() {
         <Route path="/" element={<HomePage />} />
         <Route path="/register" element={<RegisterLoan />} />
         <Route path="/viewDetails/:id" element={<LoanDetails />} />
-        <Route path="/monthlyAmount" element={<MonthlyAmount />} />
+        <Route path="/monthlyAmount/:id" element={<MonthlyAmount />} />
       </Routes>
     </div>
   );
