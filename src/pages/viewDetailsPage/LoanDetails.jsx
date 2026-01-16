@@ -1,58 +1,7 @@
-import { useState, useEffect } from "react";
-import { useParams, Link } from "react-router-dom";
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useState } from "react";
+import { Link } from "react-router-dom";
 import { MainHeader } from "../../components/MainHeader";
-import { fetchLoanById, addPayment } from "../../api/loans";
-
-/* --- 1. LOGIC HOOK (The "Brain" of the page) --- */
-function useLoanLogic() {
-  const { id } = useParams();
-  const queryClient = useQueryClient();
-  const [isOnline, setIsOnline] = useState(navigator.onLine);
-
-  // Track Online Status
-  useEffect(() => {
-    const updateStatus = () => setIsOnline(navigator.onLine);
-    window.addEventListener("online", updateStatus);
-    window.addEventListener("offline", updateStatus);
-    return () => {
-      window.removeEventListener("online", updateStatus);
-      window.removeEventListener("offline", updateStatus);
-    };
-  }, []);
-
-  // Fetch Data
-  const {
-    data: loan,
-    isLoading,
-    isError,
-  } = useQuery({
-    queryKey: ["loan", id],
-    queryFn: () => fetchLoanById(id),
-  });
-
-  // Mutation (Add Payment)
-  const mutation = useMutation({
-    mutationFn: addPayment,
-    onSuccess: () => {
-      alert("Payment Added Successfully!");
-      queryClient.invalidateQueries(["loan", id]);
-    },
-    onError: (error) => {
-      const isNetworkError =
-        error.message.includes("offline") || !navigator.onLine;
-      alert(
-        isNetworkError
-          ? "⚠️ Network Error: You seem to be offline."
-          : error.message
-      );
-    },
-  });
-
-  return { id, loan, isLoading, isError, isOnline, mutation };
-}
-
-/* --- 2. SUB-COMPONENTS (The "Building Blocks") --- */
+import { useLoanLogic } from "./useLoanLogic";
 
 const OfflineBanner = () => (
   <div className="bg-red-50 border-l-4 border-red-500 p-4 mb-4">
