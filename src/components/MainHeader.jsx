@@ -19,6 +19,14 @@ export function MainHeader() {
       </div>
       <div className="p-3">
         <Link
+          to="/allAmount"
+          className=" p-2 border border-transparent rounded-lg shadow-sm text-sm font-medium text-white bg-red-600 hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 transition-colors duration-200"
+        >
+          state
+        </Link>
+      </div>
+      <div className="p-3">
+        <Link
           to="/register"
           className=" p-2 border border-transparent rounded-lg shadow-sm text-sm font-medium text-white bg-red-600 hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 transition-colors duration-200"
         >

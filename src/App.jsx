@@ -2,6 +2,7 @@ import { HomePage } from "./pages/home/HomePage";
 import { RegisterLoan } from "./pages/registerPage/RegisterPage";
 import { LoanDetails } from "./pages/viewDetailsPage/LoanDetails";
 import { MonthlyAmount } from "./pages/monthlyAmountPage/MonthlyAmount";
+import { LoanStats } from "./pages/allAmount/LoanStats";
 import { Routes, Route } from "react-router-dom";
 function App() {
   return (
@@ -11,6 +12,7 @@ function App() {
         <Route path="/register" element={<RegisterLoan />} />
         <Route path="/viewDetails/:id" element={<LoanDetails />} />
         <Route path="/monthlyAmount/:id" element={<MonthlyAmount />} />
+        <Route path="/allAmount" element={<LoanStats />} />
       </Routes>
     </div>
   );
