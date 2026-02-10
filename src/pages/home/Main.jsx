@@ -1,8 +1,10 @@
 import { SearchBar } from "./SearchBar";
 import { Link } from "react-router-dom";
+import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { fetchLoans } from "../../api/loans";
 
+//--Cards---//
 function LoanCard({ loan }) {
   return (
     <li>
@@ -64,16 +66,18 @@ function LoanCard({ loan }) {
   );
 }
 
-/* --- Main Dashboard Component --- */
+//--Main component--//
 export function Main() {
+  const [searchTerm, setSearchTerm] = useState("");
+
   // 2. FETCH DATA: Use React Query to get real data
   const {
     data: loans = [],
     isLoading,
     isError,
   } = useQuery({
-    queryKey: ["loans"], // Unique name for this data
-    queryFn: fetchLoans, // The function to run
+    queryKey: ["loans"],
+    queryFn: fetchLoans,
   });
 
   if (isLoading)
@@ -83,9 +87,15 @@ export function Main() {
       <div className="p-10 text-center text-red-500">Error loading data.</div>
     );
 
-  const hasLoans = loans.length > 0;
+  // 3. FILTER LOGIC: This runs automatically whenever 'searchTerm' changes
+  const filteredLoans = loans.filter((loan) => {
+    if (!searchTerm) return true;
+    return loan.borrowerName.toLowerCase().includes(searchTerm.toLowerCase());
+  });
 
   const isOffline = !navigator.onLine;
+  const hasLoansInDb = loans.length > 0;
+  const hasSearchResults = filteredLoans.length > 0;
 
   return (
     <main className="p-6 max-w-7xl mx-auto min-h-screen">
@@ -93,24 +103,32 @@ export function Main() {
         <div>
           <h2 className="text-2xl font-bold text-gray-900">Loan Index</h2>
           <p className="text-sm text-gray-500 mt-1">
-            Total Loans: {loans.length}
+            {/* Show how many we found vs Total */}
+            Showing {filteredLoans.length} of {loans.length} Loans
           </p>
         </div>
-        <SearchBar />
+
+        <SearchBar value={searchTerm} onChange={setSearchTerm} />
       </section>
 
-      {hasLoans ? (
+      {/* RENDER LOGIC */}
+      {hasSearchResults ? (
         <ul role="list" className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
-          {loans.map((loan) => (
+          {filteredLoans.map((loan) => (
             <LoanCard key={loan.id} loan={loan} />
           ))}
         </ul>
       ) : (
+        /* EMPTY STATE HANDLING */
         <div className="text-center py-12 bg-white rounded-xl border border-dashed border-gray-300">
           <p className="text-gray-500 font-bold">
-            {isOffline
-              ? "⚠️ You appear to be offline. Check your internet connection."
-              : "No loans found in database."}
+            {
+              isOffline
+                ? "⚠️ You appear to be offline. Check your internet connection."
+                : !hasLoansInDb
+                  ? "No loans found in database." // Database is empty
+                  : `No results found for "${searchTerm}"` // Search found nothing
+            }
           </p>
         </div>
       )}
