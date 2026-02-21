@@ -1,14 +1,42 @@
-import { useState } from "react";
+﻿import { useState } from "react";
 import { Link } from "react-router-dom";
 import { MainHeader } from "../../components/MainHeader";
 import { useLoanLogic } from "./useLoanLogic";
+
+const getTodayDate = () => new Date().toISOString().split("T")[0];
+
+const toDateInputValue = (value) => {
+  if (typeof value !== "string") return "";
+  return value.slice(0, 10);
+};
+
+const validatePaymentDate = (date, loanDate) => {
+  const value = toDateInputValue(date);
+  if (!value) return "Payment date is required.";
+
+  const today = getTodayDate();
+  if (value > today) return "Payment date cannot be in the future.";
+
+  const normalizedLoanDate = toDateInputValue(loanDate);
+  if (normalizedLoanDate && value < normalizedLoanDate) {
+    return "Payment date cannot be earlier than loan date.";
+  }
+
+  return "";
+};
+
+const formatInr = (value) => {
+  const numeric = Number(value);
+  if (!Number.isFinite(numeric)) return "₹0";
+  return `₹${numeric.toLocaleString("en-IN")}`;
+};
 
 const OfflineBanner = () => (
   <div className="bg-red-50 border-l-4 border-red-500 p-4 mb-4">
     <div className="flex">
       <div className="ml-3">
         <p className="text-sm text-red-700 font-bold">
-          ⚠️ You are currently offline.
+          Warning: You are currently offline.
         </p>
         <p className="text-xs text-red-600">
           You cannot add new payments until connection is restored.
@@ -45,36 +73,81 @@ const LoanOverview = ({ loan }) => (
 
       <div className="lg:text-right">
         <p className="text-xs text-gray-500">Interest</p>
-        <p className="font-medium text-gray-900">₹{loan.interest}</p>
+        <p className="font-medium text-gray-900">{formatInr(loan.interest)}</p>
       </div>
 
       <div className="lg:text-right">
         <p className="text-xs text-gray-500">Total Amount</p>
-        <p className="font-bold text-lg text-gray-900">
-          ₹{loan.amount?.toLocaleString()}
-        </p>
+        <p className="font-bold text-lg text-gray-900">{formatInr(loan.amount)}</p>
       </div>
 
       <div className="lg:text-right">
         <p className="text-xs text-gray-500">Current Balance</p>
-        <p className="font-bold text-lg text-red-600">
-          ₹{loan.balance?.toLocaleString()}
-        </p>
+        <p className="font-bold text-lg text-red-600">{formatInr(loan.balance)}</p>
       </div>
     </div>
   </section>
 );
 
-const PaymentForm = ({ onAdd, isOnline, isPending }) => {
+const PaymentForm = ({
+  onAdd,
+  isOnline,
+  isPending,
+  loanDate,
+  currentBalance,
+  loanStatus,
+}) => {
   const [amount, setAmount] = useState("");
-  const [date, setDate] = useState(new Date().toISOString().split("T")[0]);
+  const [date, setDate] = useState(getTodayDate());
 
   const handleSubmit = (e) => {
     e.preventDefault();
-    if (onAdd(amount, date, "credit")) setAmount(""); // Clear amount on success
+
+    if (loanStatus === "Closed") {
+      alert("Loan is closed. Payments cannot be added.");
+      return;
+    }
+
+    const dateError = validatePaymentDate(date, loanDate);
+    if (dateError) {
+      alert(dateError);
+      return;
+    }
+
+    const amountNumber = Number(amount);
+    if (!Number.isFinite(amountNumber) || amountNumber <= 0) {
+      alert("Amount paid must be a valid number greater than 0.");
+      return;
+    }
+
+    const numericBalance = Number(currentBalance);
+    if (Number.isFinite(numericBalance) && amountNumber > numericBalance) {
+      alert("Amount paid cannot exceed current balance.");
+      return;
+    }
+
+    if (onAdd(amountNumber, toDateInputValue(date), "credit")) {
+      setAmount("");
+    }
   };
 
-  const isDisabled = !isOnline || isPending;
+  const handleNoPayment = () => {
+    if (loanStatus === "Closed") {
+      alert("Loan is closed. No-payment entry is not allowed.");
+      return;
+    }
+
+    const dateError = validatePaymentDate(date, loanDate);
+    if (dateError) {
+      alert(dateError);
+      return;
+    }
+
+    onAdd(0, toDateInputValue(date), "skip");
+  };
+
+  const isClosed = loanStatus === "Closed";
+  const isDisabled = !isOnline || isPending || isClosed;
 
   return (
     <section className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
@@ -87,31 +160,36 @@ const PaymentForm = ({ onAdd, isOnline, isPending }) => {
       >
         <div className="w-full sm:w-1/3">
           <label className="block text-sm font-medium text-gray-700 mb-1">
-            Amount Paid
-          </label>
-          <input
-            type="number"
-            value={amount}
-            onChange={(e) => setAmount(e.target.value)}
-            disabled={isDisabled}
-            className="block w-full p-2 rounded-lg border shadow-sm focus:border-red-500 focus:ring-red-500 sm:text-sm disabled:bg-gray-100"
-            placeholder="1000"
-            required
-          />
-        </div>
-        <div className="w-full sm:w-1/3">
-          <label className="block text-sm font-medium text-gray-700 mb-1">
             Date
           </label>
           <input
             type="date"
             value={date}
             onChange={(e) => setDate(e.target.value)}
+            max={getTodayDate()}
             disabled={isDisabled}
-            className="block w-full p-2 border rounded-lg border-gray-600 shadow-sm focus:border-red-500 focus:ring-red-500 sm:text-sm disabled:bg-gray-100"
+            className="block w-full p-2 border rounded-lg border-gray-300 shadow-sm focus:border-red-500 focus:ring-red-500 sm:text-sm disabled:bg-gray-100"
             required
           />
         </div>
+
+        <div className="w-full sm:w-1/3">
+          <label className="block text-sm font-medium text-gray-700 mb-1">
+            Amount Paid
+          </label>
+          <input
+            type="number"
+            value={amount}
+            onChange={(e) => setAmount(e.target.value)}
+            min="0.01"
+            step="0.01"
+            disabled={isDisabled}
+            className="block w-full p-2 rounded-lg border border-gray-300 shadow-sm focus:border-red-500 focus:ring-red-500 sm:text-sm disabled:bg-gray-100"
+            placeholder="1000"
+            required
+          />
+        </div>
+
         <button
           type="submit"
           disabled={isDisabled}
@@ -119,11 +197,18 @@ const PaymentForm = ({ onAdd, isOnline, isPending }) => {
             isDisabled ? "bg-gray-400" : "bg-red-600 hover:bg-red-700"
           }`}
         >
-          {isPending ? "Adding..." : !isOnline ? "Offline" : "Add Payment"}
+          {isPending
+            ? "Adding..."
+            : !isOnline
+              ? "Offline"
+              : isClosed
+                ? "Closed"
+                : "Add Payment"}
         </button>
+
         <button
           type="button"
-          onClick={() => onAdd(0, date, "skip")}
+          onClick={handleNoPayment}
           disabled={isDisabled}
           className="w-full sm:w-auto px-6 py-2 border border-gray-300 rounded-lg text-gray-700 font-medium hover:bg-gray-50 disabled:bg-gray-100"
         >
@@ -167,7 +252,7 @@ const PaymentHistory = ({ payments = [], loanId }) => (
                 >
                   {pay.amount === 0
                     ? "No Payment"
-                    : `₹${pay.amount.toLocaleString()}`}
+                    : formatInr(pay.amount)}
                 </p>
                 <p className="text-sm text-gray-500">{pay.date}</p>
               </div>
@@ -192,11 +277,68 @@ export function LoanDetails() {
   // Helper to handle both "Add Payment" and "No Payment" logic
   const handlePaymentSubmit = (amount, date, type) => {
     if (!isOnline) return false;
+
+    if (loan?.status === "Closed") {
+      alert("Loan is closed. No more payments can be added.");
+      return false;
+    }
+
+    const validTypes = new Set(["credit", "skip"]);
+    if (!validTypes.has(type)) {
+      alert("Invalid payment type.");
+      return false;
+    }
+
+    const dateError = validatePaymentDate(date, loan?.loanDate);
+    if (dateError) {
+      alert(dateError);
+      return false;
+    }
+    const normalizedDate = toDateInputValue(date);
+    const hasPaymentOnDate = (loan?.payments || []).some(
+      (payment) => toDateInputValue(payment?.date) === normalizedDate,
+    );
+    if (hasPaymentOnDate) {
+      alert("Only one payment entry is allowed per date.");
+      return false;
+    }
+
+    const numericAmount = Number(amount);
+    if (!Number.isFinite(numericAmount)) {
+      alert("Invalid payment amount.");
+      return false;
+    }
+
+    if (numericAmount < 0) {
+      alert("Payment amount cannot be negative.");
+      return false;
+    }
+
+    if (type === "credit" && numericAmount <= 0) {
+      alert("Amount paid must be greater than 0.");
+      return false;
+    }
+
+    if (type === "skip" && numericAmount !== 0) {
+      alert("No payment entry must have amount 0.");
+      return false;
+    }
+
+    const currentBalance = Number(loan?.balance);
+    if (
+      type === "credit" &&
+      Number.isFinite(currentBalance) &&
+      numericAmount > currentBalance
+    ) {
+      alert("Amount paid cannot exceed current balance.");
+      return false;
+    }
+
     mutation.mutate({
       loanId: id,
       payment: {
-        amount: Number(amount),
-        date,
+        amount: numericAmount,
+        date: normalizedDate,
         type,
         timestamp: new Date().toISOString(),
       },
@@ -220,6 +362,9 @@ export function LoanDetails() {
           onAdd={handlePaymentSubmit}
           isOnline={isOnline}
           isPending={mutation.isPending}
+          loanDate={loan?.loanDate}
+          currentBalance={loan?.balance}
+          loanStatus={loan?.status}
         />
         <PaymentHistory payments={loan.payments} loanId={id} />
       </main>
