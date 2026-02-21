@@ -15,12 +15,18 @@ function calculateGlobalStats(loans = []) {
     (stats, loan) => {
       // 1. Sum up total money given (Principal)
       stats.totalGiven += loan.amount || 0;
+      if (loan.status !== "Closed") {
+        stats.totalGivenActive += loan.amount || 0;
+      }
 
       // 2. Sum up total money pending (Balance)
       stats.totalBalance += loan.balance || 0;
 
       // 3. Sum up total Interest earned
       stats.totalInterest += loan.interest || 0;
+      if (loan.status !== "Closed") {
+        stats.totalInterestActive += loan.interest || 0;
+      }
 
       // 4. Count Active vs Closed
       if (loan.status === "Closed") {
@@ -33,8 +39,10 @@ function calculateGlobalStats(loans = []) {
     },
     {
       totalGiven: 0,
+      totalGivenActive: 0,
       totalBalance: 0,
       totalInterest: 0,
+      totalInterestActive: 0,
       activeCount: 0,
       closedCount: 0,
     },
@@ -74,7 +82,8 @@ export function LoanStats() {
   // Run the math
   const stats = calculateGlobalStats(loans);
   const totalLoans = loans.length;
-  const recoveredPrincipal = stats.totalGiven - stats.totalBalance;
+  const recoveredPrincipal = stats.totalGivenActive - stats.totalBalance;
+  const activeDisbursed = stats.totalGivenActive;
 
   return (
     <>
@@ -104,9 +113,9 @@ export function LoanStats() {
           {/* 1. Total Amount Given */}
           <StatCard
             title="Total Disbursed"
-            value={currencyFormatter.format(stats.totalGiven)}
+            value={currencyFormatter.format(activeDisbursed)}
             color="text-gray-900"
-            subtext="Total principal amount lent to all borrowers."
+            subtext="Total principal amount lent to active borrowers only."
           />
 
           {/* 2. Total Balance Pending (The most important number) */}
@@ -120,9 +129,9 @@ export function LoanStats() {
           {/* 3. Total Interest Profit */}
           <StatCard
             title="Interest Profit"
-            value={currencyFormatter.format(stats.totalInterest)}
+            value={currencyFormatter.format(stats.totalInterestActive)}
             color="text-green-600"
-            subtext="Total interest earnings collected so far."
+            subtext="Total interest amount from active loans only."
           />
 
           {/* 4. Total Disbursed - Total Outstanding */}
