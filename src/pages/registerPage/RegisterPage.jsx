@@ -2,12 +2,11 @@ import { MainHeader } from "../../components/MainHeader";
 import { useState } from "react";
 import { useMutation } from "@tanstack/react-query";
 import { registerLoan } from "../../api/loans.js";
-import { useNavigate } from "react-router-dom"; // Import useNavigate for navigation after submission to home page
+import { useNavigate } from "react-router-dom"; 
 
 export function RegisterLoan() {
   const navigate = useNavigate();
-
-  const [formData, setFormData] = useState({
+  const defaultFormData = {
     borrowerName: "",
     amount: "",
     interest: "",
@@ -16,55 +15,98 @@ export function RegisterLoan() {
     place: "",
     balance: "",
     status: "Active",
-  });
+  };
 
-  // 2. Define the Mutation Logic
+  const [formData, setFormData] = useState(defaultFormData);
+
   const mutation = useMutation({
     mutationFn: registerLoan,
     onSuccess: (data) => {
-      // Success!
       alert("Loan Registered Successfully!");
-      // Clear the form after successful submission
-      setFormData({
-        borrowerName: "",
-        amount: "",
-        interest: "",
-        loanDate: "",
-        dueDate: "",
-        place: "",
-        balance: "",
-        status: "Active",
-      });
-      //Navigate back to home or home page
+      setFormData(defaultFormData);
       navigate("/");
     },
     onError: (error) => {
-      // Error!
-      console.error("Error adding document: ", error);
+      if (import.meta.env.DEV) {
+        console.error("Error adding document: ", error);
+      }
       alert("Failed to register loan. Please try again.");
     },
   });
 
+  // --- THE MAGIC HAPPENS HERE ---
   const handleChange = (e) => {
     const { name, value } = e.target;
-    setFormData((prev) => ({
-      ...prev,
-      [name]: value,
-    }));
+    
+    setFormData((prev) => {
+      const updatedData = { ...prev, [name]: value };
+      
+      // Auto-fill Balance if Amount is changed
+      if (name === "amount") {
+        updatedData.balance = value; 
+      }
+      
+      return updatedData;
+    });
   };
 
   const handleSubmit = (e) => {
     e.preventDefault();
+    const amount = Number(formData.amount);
+    const interest = Number(formData.interest);
+    const balance = Number(formData.balance);
+    const loanDate = new Date(formData.loanDate);
+    const dueDate = new Date(formData.dueDate);
+    const allowedStatuses = new Set(["Active", "Pending", "Closed"]);
 
-    // 3. Prepare data (Convert strings to numbers for DB)
+    if (!formData.borrowerName.trim()) {
+      alert("Borrower name is required.");
+      return;
+    }
+
+    if (!formData.place.trim()) {
+      alert("Place is required.");
+      return;
+    }
+
+    if (
+      !Number.isFinite(amount) ||
+      !Number.isFinite(interest) ||
+      !Number.isFinite(balance)
+    ) {
+      alert("Amount, interest, and balance must be valid numbers.");
+      return;
+    }
+
+    if (amount <= 0 || interest < 0 || balance < 0) {
+      alert("Amount must be greater than 0. Interest and balance cannot be negative.");
+      return;
+    }
+
+    if (Number.isNaN(loanDate.getTime()) || Number.isNaN(dueDate.getTime())) {
+      alert("Please provide valid loan and due dates.");
+      return;
+    }
+
+    if (dueDate < loanDate) {
+      alert("Due date cannot be earlier than loan date.");
+      return;
+    }
+
+    if (!allowedStatuses.has(formData.status)) {
+      alert("Selected loan status is invalid.");
+      return;
+    }
+
     const cleanData = {
       ...formData,
-      amount: Number(formData.amount),
-      interest: Number(formData.interest),
-      balance: Number(formData.balance),
+      borrowerName: formData.borrowerName.trim(),
+      place: formData.place.trim(),
+      amount,
+      interest,
+      balance,
     };
 
-    // 4. Trigger the mutation
     mutation.mutate(cleanData);
   };
 
@@ -92,10 +134,7 @@ export function RegisterLoan() {
           <form onSubmit={handleSubmit} className="p-6 space-y-6">
             {/* --- Borrower Name --- */}
             <div>
-              <label
-                htmlFor="borrowerName"
-                className="block text-sm font-medium text-gray-700 mb-1"
-              >
+              <label htmlFor="borrowerName" className="block text-sm font-medium text-gray-700 mb-1">
                 Borrower Name
               </label>
               <input
@@ -104,7 +143,6 @@ export function RegisterLoan() {
                 name="borrowerName"
                 value={formData.borrowerName}
                 onChange={handleChange}
-                // Disable input while loading
                 disabled={mutation.isPending}
                 className="block w-full rounded-lg border border-gray-300 px-3 py-2 shadow-sm focus:border-red-500 focus:outline-none focus:ring-1 focus:ring-red-500 sm:text-sm disabled:bg-gray-100 disabled:text-gray-500"
                 placeholder="Enter full name"
@@ -115,16 +153,15 @@ export function RegisterLoan() {
             {/* --- Money Grid (Amount & Interest) --- */}
             <div className="grid grid-cols-1 gap-6 sm:grid-cols-2">
               <div>
-                <label
-                  htmlFor="amount"
-                  className="block text-sm font-medium text-gray-700 mb-1"
-                >
+                <label htmlFor="amount" className="block text-sm font-medium text-gray-700 mb-1">
                   Loan Amount (₹)
                 </label>
                 <input
                   type="number"
                   id="amount"
                   name="amount"
+                  min="0.01"
+                  step="0.01"
                   value={formData.amount}
                   onChange={handleChange}
                   disabled={mutation.isPending}
@@ -135,16 +172,14 @@ export function RegisterLoan() {
               </div>
 
               <div>
-                <label
-                  htmlFor="interest"
-                  className="block text-sm font-medium text-gray-700 mb-1"
-                >
+                <label htmlFor="interest" className="block text-sm font-medium text-gray-700 mb-1">
                   Interest Amount
                 </label>
                 <input
                   type="number"
                   id="interest"
                   name="interest"
+                  min="0"
                   step="0.01"
                   value={formData.interest}
                   onChange={handleChange}
@@ -159,30 +194,26 @@ export function RegisterLoan() {
             {/* --- Status & Balance Grid --- */}
             <div className="grid grid-cols-1 gap-6 sm:grid-cols-2">
               <div>
-                <label
-                  htmlFor="balance"
-                  className="block text-sm font-medium text-gray-700 mb-1"
-                >
+                <label htmlFor="balance" className="block text-sm font-medium text-gray-700 mb-1">
                   Opening Balance (₹)
                 </label>
                 <input
                   type="number"
                   id="balance"
                   name="balance"
+                  min="0"
+                  step="0.01"
                   value={formData.balance}
                   onChange={handleChange}
                   disabled={mutation.isPending}
                   className="block w-full rounded-lg border border-gray-300 px-3 py-2 shadow-sm focus:border-red-500 focus:outline-none focus:ring-1 focus:ring-red-500 sm:text-sm disabled:bg-gray-100"
-                  placeholder="Usually same as Amount"
+                  placeholder="Auto-fills from Amount"
                   required
                 />
               </div>
 
               <div>
-                <label
-                  htmlFor="status"
-                  className="block text-sm font-medium text-gray-700 mb-1"
-                >
+                <label htmlFor="status" className="block text-sm font-medium text-gray-700 mb-1">
                   Loan Status
                 </label>
                 <select
@@ -203,10 +234,7 @@ export function RegisterLoan() {
             {/* --- Dates Grid --- */}
             <div className="grid grid-cols-1 gap-6 sm:grid-cols-2">
               <div>
-                <label
-                  htmlFor="loanDate"
-                  className="block text-sm font-medium text-gray-700 mb-1"
-                >
+                <label htmlFor="loanDate" className="block text-sm font-medium text-gray-700 mb-1">
                   Loan Date
                 </label>
                 <input
@@ -222,10 +250,7 @@ export function RegisterLoan() {
               </div>
 
               <div>
-                <label
-                  htmlFor="dueDate"
-                  className="block text-sm font-medium text-gray-700 mb-1"
-                >
+                <label htmlFor="dueDate" className="block text-sm font-medium text-gray-700 mb-1">
                   Due Date
                 </label>
                 <input
@@ -243,10 +268,7 @@ export function RegisterLoan() {
 
             {/* --- Place --- */}
             <div>
-              <label
-                htmlFor="place"
-                className="block text-sm font-medium text-gray-700 mb-1"
-              >
+              <label htmlFor="place" className="block text-sm font-medium text-gray-700 mb-1">
                 Place
               </label>
               <input
@@ -266,7 +288,6 @@ export function RegisterLoan() {
             <div className="pt-4">
               <button
                 type="submit"
-                // 5. Disable button when loading to prevent double-click
                 disabled={mutation.isPending}
                 className={`w-full flex justify-center items-center px-4 py-2 border border-transparent rounded-lg shadow-sm text-sm font-medium text-white transition-colors duration-200 
                   ${
@@ -275,16 +296,14 @@ export function RegisterLoan() {
                       : "bg-red-600 hover:bg-red-700 focus:ring-2 focus:ring-offset-2 focus:ring-red-500"
                   }`}
               >
-                {/* 6. Change text based on state */}
                 {mutation.isPending
                   ? "Registering Loan..."
                   : "Submit Registration"}
               </button>
 
-              {/* Optional: Show Error Message nicely */}
               {mutation.isError && (
                 <p className="mt-2 text-sm text-red-600 text-center">
-                  Error: {mutation.error.message}
+                  Failed to register loan. Please check your input and try again.
                 </p>
               )}
             </div>
