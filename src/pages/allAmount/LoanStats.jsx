@@ -93,7 +93,7 @@ export function LoanStats() {
           </div>
           <Link
             to="/"
-            className="px-4 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 text-sm font-medium rounded-lg transition-colors"
+            className="px-4 py-2 bg-gray-400 hover:bg-gray-500 text-gray-100 text-sm font-medium rounded-lg transition-colors text-center"
           >
             Back to Home
           </Link>
