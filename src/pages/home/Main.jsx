@@ -69,6 +69,7 @@ function LoanCard({ loan }) {
 //--Main component--//
 export function Main() {
   const [searchTerm, setSearchTerm] = useState("");
+  const [statusFilter, setStatusFilter] = useState("active");
 
   // 2. FETCH DATA: Use React Query to get real data
   const {
@@ -87,10 +88,20 @@ export function Main() {
       <div className="p-10 text-center text-red-500">Error loading data.</div>
     );
 
-  // 3. FILTER LOGIC: This runs automatically whenever 'searchTerm' changes
+  const activeCount = loans.filter((loan) => loan.status !== "Closed").length;
+  const closedCount = loans.filter((loan) => loan.status === "Closed").length;
+
+  // 3. FILTER LOGIC: This runs automatically whenever filters change
   const filteredLoans = loans.filter((loan) => {
-    if (!searchTerm) return true;
-    return loan.borrowerName.toLowerCase().includes(searchTerm.toLowerCase());
+    const borrowerName = String(loan.borrowerName || "").toLowerCase();
+    const matchesSearch = !searchTerm || borrowerName.includes(searchTerm.toLowerCase());
+    const isClosed = loan.status === "Closed";
+    const matchesStatus =
+      statusFilter === "all" ||
+      (statusFilter === "active" && !isClosed) ||
+      (statusFilter === "closed" && isClosed);
+
+    return matchesSearch && matchesStatus;
   });
 
   const isOffline = !navigator.onLine;
@@ -103,12 +114,49 @@ export function Main() {
         <div>
           <h2 className="text-2xl font-bold text-gray-900">Loan Index</h2>
           <p className="text-sm text-gray-500 mt-1">
-            {/* Show how many we found vs Total */}
             Showing {filteredLoans.length} of {loans.length} Loans
           </p>
         </div>
 
         <SearchBar value={searchTerm} onChange={setSearchTerm} />
+      </section>
+
+      <section className="mb-6">
+        <div className="inline-flex rounded-lg border border-gray-300 bg-white p-1">
+          <button
+            type="button"
+            onClick={() => setStatusFilter("active")}
+            className={`px-4 py-2 text-sm font-medium rounded-md transition-colors ${
+              statusFilter === "active"
+                ? "bg-red-600 text-white"
+                : "text-gray-700 hover:bg-gray-100"
+            }`}
+          >
+            Active ({activeCount})
+          </button>
+          <button
+            type="button"
+            onClick={() => setStatusFilter("closed")}
+            className={`px-4 py-2 text-sm font-medium rounded-md transition-colors ${
+              statusFilter === "closed"
+                ? "bg-red-600 text-white"
+                : "text-gray-700 hover:bg-gray-100"
+            }`}
+          >
+            Closed ({closedCount})
+          </button>
+          <button
+            type="button"
+            onClick={() => setStatusFilter("all")}
+            className={`px-4 py-2 text-sm font-medium rounded-md transition-colors ${
+              statusFilter === "all"
+                ? "bg-red-600 text-white"
+                : "text-gray-700 hover:bg-gray-100"
+            }`}
+          >
+            All ({loans.length})
+          </button>
+        </div>
       </section>
 
       {/* RENDER LOGIC */}
