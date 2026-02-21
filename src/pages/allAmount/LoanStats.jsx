@@ -1,7 +1,13 @@
-import { useQuery } from "@tanstack/react-query";
+﻿import { useQuery } from "@tanstack/react-query";
 import { Link } from "react-router-dom";
 import { MainHeader } from "../../components/MainHeader";
 import { fetchLoans } from "../../api/loans"; // Reusing your existing fetch function
+
+const currencyFormatter = new Intl.NumberFormat("en-IN", {
+  style: "currency",
+  currency: "INR",
+  maximumFractionDigits: 2,
+});
 
 /* --- 1. HELPER: Calculate Totals --- */
 function calculateGlobalStats(loans = []) {
@@ -37,7 +43,7 @@ function calculateGlobalStats(loans = []) {
 
 /* --- 2. SUB-COMPONENT: Stat Card --- */
 const StatCard = ({ title, value, color, subtext }) => (
-  <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-200">
+  <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-200 min-h-40">
     <p className="text-sm text-gray-500 font-medium uppercase tracking-wider mb-1">
       {title}
     </p>
@@ -68,13 +74,14 @@ export function LoanStats() {
   // Run the math
   const stats = calculateGlobalStats(loans);
   const totalLoans = loans.length;
+  const recoveredPrincipal = stats.totalGiven - stats.totalBalance;
 
   return (
     <>
       <MainHeader />
-      <main className="max-w-5xl mx-auto p-6 space-y-8">
+      <main className="max-w-6xl mx-auto p-6 space-y-8">
         {/* Header Section */}
-        <div className="flex justify-between items-center">
+        <div className="flex flex-col gap-4 sm:flex-row sm:justify-between sm:items-center">
           <div>
             <h1 className="text-2xl font-bold text-gray-900">
               Business Overview
@@ -93,11 +100,11 @@ export function LoanStats() {
         </div>
 
         {/* Big Stats Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-6">
           {/* 1. Total Amount Given */}
           <StatCard
             title="Total Disbursed"
-            value={`₹${stats.totalGiven.toLocaleString()}`}
+            value={currencyFormatter.format(stats.totalGiven)}
             color="text-gray-900"
             subtext="Total principal amount lent to all borrowers."
           />
@@ -105,7 +112,7 @@ export function LoanStats() {
           {/* 2. Total Balance Pending (The most important number) */}
           <StatCard
             title="Total Outstanding"
-            value={`₹${stats.totalBalance.toLocaleString()}`}
+            value={currencyFormatter.format(stats.totalBalance)}
             color="text-red-600"
             subtext="Total principal money yet to be recovered."
           />
@@ -113,9 +120,17 @@ export function LoanStats() {
           {/* 3. Total Interest Profit */}
           <StatCard
             title="Interest Profit"
-            value={`₹${stats.totalInterest.toLocaleString()}`}
+            value={currencyFormatter.format(stats.totalInterest)}
             color="text-green-600"
             subtext="Total interest earnings collected so far."
+          />
+
+          {/* 4. Total Disbursed - Total Outstanding */}
+          <StatCard
+            title="Disbursed - Outstanding"
+            value={currencyFormatter.format(recoveredPrincipal)}
+            color="text-blue-700"
+            subtext="Net principal recovered so far."
           />
         </div>
 
@@ -144,3 +159,4 @@ export function LoanStats() {
     </>
   );
 }
+
