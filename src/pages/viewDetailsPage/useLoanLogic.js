@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+﻿import { useState, useEffect } from "react";
 import { useParams } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { fetchLoanById, addPayment } from "../../api/loans";
@@ -35,18 +35,21 @@ export function useLoanLogic() {
     mutationFn: addPayment,
     onSuccess: () => {
       alert("Payment Added Successfully!");
-      queryClient.invalidateQueries(["loan", id]);
+      queryClient.invalidateQueries({ queryKey: ["loan", id] });
     },
     onError: (error) => {
+      const message =
+        typeof error?.message === "string" ? error.message : "";
       const isNetworkError =
-        error.message.includes("offline") || !navigator.onLine;
+        message.toLowerCase().includes("offline") || !navigator.onLine;
       alert(
         isNetworkError
-          ? "⚠️ Network Error: You seem to be offline."
-          : error.message
+          ? "Network Error: You seem to be offline."
+          : message || "Failed to add payment."
       );
     },
   });
 
   return { id, loan, isLoading, isError, isOnline, mutation };
 }
+

@@ -340,7 +340,6 @@ export function LoanDetails() {
         amount: numericAmount,
         date: normalizedDate,
         type,
-        timestamp: new Date().toISOString(),
       },
     });
     return true; // Return true to indicate submission started
@@ -371,3 +370,4 @@ export function LoanDetails() {
     </>
   );
 }
+

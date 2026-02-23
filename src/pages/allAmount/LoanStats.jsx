@@ -1,7 +1,8 @@
-﻿import { useQuery } from "@tanstack/react-query";
+﻿import { useEffect, useState } from "react";
+import { useQuery } from "@tanstack/react-query";
 import { Link } from "react-router-dom";
 import { MainHeader } from "../../components/MainHeader";
-import { fetchLoans } from "../../api/loans"; // Reusing your existing fetch function
+import { fetchLoans } from "../../api/loans";
 
 const currencyFormatter = new Intl.NumberFormat("en-IN", {
   style: "currency",
@@ -9,27 +10,58 @@ const currencyFormatter = new Intl.NumberFormat("en-IN", {
   maximumFractionDigits: 2,
 });
 
+const getLocalDayRangeMs = () => {
+  const now = new Date();
+  const start = new Date(now);
+  start.setHours(0, 0, 0, 0);
+  const end = new Date(now);
+  end.setHours(23, 59, 59, 999);
+  return { startMs: start.getTime(), endMs: end.getTime() };
+};
+
+const getPaymentTimestampMs = (payment) => {
+  const rawTimestamp = payment?.timestamp;
+
+  if (rawTimestamp && typeof rawTimestamp.toDate === "function") {
+    const dateValue = rawTimestamp.toDate();
+    const time = dateValue instanceof Date ? dateValue.getTime() : NaN;
+    return Number.isFinite(time) ? time : null;
+  }
+
+  if (
+    typeof rawTimestamp === "string" ||
+    rawTimestamp instanceof Date ||
+    typeof rawTimestamp === "number"
+  ) {
+    const parsedTime = new Date(rawTimestamp).getTime();
+    return Number.isFinite(parsedTime) ? parsedTime : null;
+  }
+
+  return null;
+};
+
 /* --- 1. HELPER: Calculate Totals --- */
 function calculateGlobalStats(loans = []) {
   return loans.reduce(
     (stats, loan) => {
-      // 1. Sum up total money given (Principal)
-      stats.totalGiven += loan.amount || 0;
-      if (loan.status !== "Closed") {
-        stats.totalGivenActive += loan.amount || 0;
+      const amount = Number(loan.amount) || 0;
+      const balance = Number(loan.balance) || 0;
+      const interest = Number(loan.interest) || 0;
+      const isClosed = loan.status === "Closed";
+
+      stats.totalGiven += amount;
+      if (!isClosed) {
+        stats.totalGivenActive += amount;
       }
 
-      // 2. Sum up total money pending (Balance)
-      stats.totalBalance += loan.balance || 0;
+      stats.totalBalance += balance;
 
-      // 3. Sum up total Interest earned
-      stats.totalInterest += loan.interest || 0;
-      if (loan.status !== "Closed") {
-        stats.totalInterestActive += loan.interest || 0;
+      stats.totalInterest += interest;
+      if (!isClosed) {
+        stats.totalInterestActive += interest;
       }
 
-      // 4. Count Active vs Closed
-      if (loan.status === "Closed") {
+      if (isClosed) {
         stats.closedCount++;
       } else {
         stats.activeCount++;
@@ -62,9 +94,11 @@ const StatCard = ({ title, value, color, subtext }) => (
 
 /* --- 3. MAIN PAGE COMPONENT --- */
 export function LoanStats() {
+  const [todayCollection, setTodayCollection] = useState({ total: 0, count: 0 });
+
   // Fetch ALL loans
   const {
-    data: loans = [],
+    data: loansData,
     isLoading,
     isError,
   } = useQuery({
@@ -72,12 +106,44 @@ export function LoanStats() {
     queryFn: fetchLoans,
   });
 
+  useEffect(() => {
+    const loans = Array.isArray(loansData) ? loansData : [];
+    const { startMs, endMs } = getLocalDayRangeMs();
+    let total = 0;
+    let count = 0;
+
+    for (const loan of loans) {
+      const payments = Array.isArray(loan?.payments) ? loan.payments : [];
+
+      for (const payment of payments) {
+        if (payment?.type !== "credit") continue;
+
+        const paymentMs = getPaymentTimestampMs(payment);
+        if (paymentMs === null) continue;
+        if (paymentMs < startMs || paymentMs > endMs) continue;
+
+        const amount = Number(payment?.amount);
+        if (!Number.isFinite(amount)) continue;
+
+        total += amount;
+        count += 1;
+      }
+    }
+
+    setTodayCollection((prev) => {
+      if (prev.total === total && prev.count === count) return prev;
+      return { total, count };
+    });
+  }, [loansData]);
+
   if (isLoading)
     return <div className="p-10 text-center">Loading Analytics...</div>;
   if (isError)
     return (
       <div className="p-10 text-center text-red-600">Error loading data.</div>
     );
+
+  const loans = Array.isArray(loansData) ? loansData : [];
 
   // Run the math
   const stats = calculateGlobalStats(loans);
@@ -88,7 +154,7 @@ export function LoanStats() {
   return (
     <>
       <MainHeader />
-      <main className="max-w-6xl mx-auto p-6 space-y-8">
+      <main className="max-w-7xl mx-auto px-4 py-6 space-y-8">
         {/* Header Section */}
         <div className="flex flex-col gap-4 sm:flex-row sm:justify-between sm:items-center">
           <div>
@@ -109,63 +175,53 @@ export function LoanStats() {
         </div>
 
         {/* Big Stats Grid */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-6">
-          {/* 1. Total Amount Given */}
-          <StatCard
-            title="Total Disbursed"
-            value={currencyFormatter.format(activeDisbursed)}
-            color="text-gray-900"
-            subtext="Total principal amount lent to active borrowers only."
-          />
-
-          {/* 2. Total Balance Pending (The most important number) */}
-          <StatCard
-            title="Total Outstanding"
-            value={currencyFormatter.format(stats.totalBalance)}
-            color="text-red-600"
-            subtext="Total principal money yet to be recovered."
-          />
-
-          {/* 3. Total Interest Profit */}
-          <StatCard
-            title="Interest Profit"
-            value={currencyFormatter.format(stats.totalInterestActive)}
-            color="text-green-600"
-            subtext="Total interest amount from active loans only."
-          />
-
-          {/* 4. Total Disbursed - Total Outstanding */}
-          <StatCard
-            title="Disbursed - Outstanding"
-            value={currencyFormatter.format(recoveredPrincipal)}
-            color="text-blue-700"
-            subtext="Net principal recovered so far."
-          />
-        </div>
-
-        {/* Optional: Summary Bar */}
-        <div className="bg-blue-50 rounded-xl p-6 border border-blue-100 flex flex-col sm:flex-row justify-between items-center gap-4">
-          <div>
-            <h3 className="text-blue-900 font-bold text-lg">Recovery Rate</h3>
-            <p className="text-blue-700 text-sm">
-              Percentage of principal collected
-            </p>
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 items-stretch">
+          <div className="h-full">
+            <StatCard
+              title="Total Disbursed"
+              value={currencyFormatter.format(activeDisbursed)}
+              color="text-gray-900"
+              subtext="Total principal amount lent to active borrowers only."
+            />
           </div>
-          <div className="text-right">
-            <span className="text-3xl font-bold text-blue-800">
-              {stats.totalGiven > 0
-                ? Math.round(
-                    ((stats.totalGiven - stats.totalBalance) /
-                      stats.totalGiven) *
-                      100,
-                  )
-                : 0}
-              %
-            </span>
+
+          <div className="h-full">
+            <StatCard
+              title="Total Outstanding"
+              value={currencyFormatter.format(stats.totalBalance)}
+              color="text-red-600"
+              subtext="Total principal money yet to be recovered."
+            />
+          </div>
+
+          <div className="h-full">
+            <StatCard
+              title="Today's Collection"
+              value={currencyFormatter.format(todayCollection.total)}
+              color="text-indigo-700"
+              subtext={`${todayCollection.count} payments recorded today`}
+            />
+          </div>
+
+          <div className="h-full">
+            <StatCard
+              title="Interest Profit"
+              value={currencyFormatter.format(stats.totalInterestActive)}
+              color="text-green-600"
+              subtext="Total interest amount from active loans only."
+            />
+          </div>
+
+          <div className="h-full">
+            <StatCard
+              title="Disbursed - Outstanding"
+              value={currencyFormatter.format(recoveredPrincipal)}
+              color="text-blue-700"
+              subtext="Net principal recovered so far."
+            />
           </div>
         </div>
       </main>
     </>
   );
 }
-
