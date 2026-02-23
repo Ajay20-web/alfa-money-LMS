@@ -10,13 +10,25 @@ const currencyFormatter = new Intl.NumberFormat("en-IN", {
   maximumFractionDigits: 2,
 });
 
-const getLocalDayRangeMs = () => {
-  const now = new Date();
-  const start = new Date(now);
-  start.setHours(0, 0, 0, 0);
-  const end = new Date(now);
-  end.setHours(23, 59, 59, 999);
-  return { startMs: start.getTime(), endMs: end.getTime() };
+const BUSINESS_TIME_ZONE = import.meta.env.VITE_BUSINESS_TIMEZONE || "Asia/Kolkata";
+
+const getDateKeyInTimeZone = (value, timeZone) => {
+  const date = value instanceof Date ? value : new Date(value);
+  if (!Number.isFinite(date.getTime())) return null;
+
+  const parts = new Intl.DateTimeFormat("en-CA", {
+    timeZone,
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).formatToParts(date);
+
+  const year = parts.find((part) => part.type === "year")?.value;
+  const month = parts.find((part) => part.type === "month")?.value;
+  const day = parts.find((part) => part.type === "day")?.value;
+  if (!year || !month || !day) return null;
+
+  return `${year}-${month}-${day}`;
 };
 
 const getPaymentTimestampMs = (payment) => {
@@ -108,7 +120,15 @@ export function LoanStats() {
 
   useEffect(() => {
     const loans = Array.isArray(loansData) ? loansData : [];
-    const { startMs, endMs } = getLocalDayRangeMs();
+    const todayKey = getDateKeyInTimeZone(new Date(), BUSINESS_TIME_ZONE);
+
+    if (!todayKey) {
+      setTodayCollection((prev) =>
+        prev.total === 0 && prev.count === 0 ? prev : { total: 0, count: 0 },
+      );
+      return;
+    }
+
     let total = 0;
     let count = 0;
 
@@ -119,8 +139,14 @@ export function LoanStats() {
         if (payment?.type !== "credit") continue;
 
         const paymentMs = getPaymentTimestampMs(payment);
-        if (paymentMs === null) continue;
-        if (paymentMs < startMs || paymentMs > endMs) continue;
+        const paymentDateKey =
+          paymentMs !== null
+            ? getDateKeyInTimeZone(new Date(paymentMs), BUSINESS_TIME_ZONE)
+            : typeof payment?.date === "string"
+              ? payment.date
+              : null;
+
+        if (paymentDateKey !== todayKey) continue;
 
         const amount = Number(payment?.amount);
         if (!Number.isFinite(amount)) continue;
